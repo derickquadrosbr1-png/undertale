@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Determinação</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { 
+            background-color: black; 
+            color: white; 
+            font-family: 'Press Start 2P', cursive; 
+            overflow: hidden;
+            image-rendering: pixelated;
+            margin: 0;
+            touch-action: manipulation; /* Melhora o toque no mobile */
+        }
+        .hidden { display: none !important; }
+
+        /* --- FUNDO DA BATALHA --- */
+        #battle-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .asgore-particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background-color: #ff8000;
+            animation: asgore-float linear forwards;
+            box-shadow: 0 0 5px #ff4000;
+        }
+
+        .purple-wave {
+            position: absolute;
+            width: 200%;
+            height: 100px;
+            background: linear-gradient(to bottom, transparent, rgba(128, 0, 128, 0.15), transparent);
+            left: -50%;
+            filter: blur(15px);
+            animation: wave-slide ease-in-out infinite alternate, wave-pulse ease-in-out infinite;
+        }
+
+        @keyframes asgore-float {
+            0% { transform: translateY(105vh); opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { transform: translateY(-10vh); opacity: 0; }
+        }
+
+        @keyframes wave-slide {
+            from { transform: translateX(-20px); }
+            to { transform: translateX(20px); }
+        }
+
+        @keyframes wave-pulse {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 0.8; }
+        }
+
+        /* --- ANIMAÇÕES SANS E ALMAS (AJUSTE MOBILE) --- */
+        @keyframes walk-across {
+            from { left: -100px; }
+            to { left: 110vw; }
+        }
+
+        @keyframes float-alma {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); } 
+        }
+
+        .walking-soul {
+            position: absolute;
+            bottom: 85px; /* Mais alto para fugir da barra do navegador */
+            width: 14px;
+            height: 14px;
+            z-index: 10;
+            clip-path: polygon(50% 15%, 80% 0, 100% 25%, 100% 50%, 50% 100%, 0 50%, 0 25%, 20% 0);
+            animation: walk-across 8s linear infinite, float-alma 2s ease-in-out infinite;
+            filter: drop-shadow(0 0 5px currentColor);
+        }
+
+        .sans-sprite {
+            position: absolute;
+            bottom: 45px;
+            height: 100px; /* Reduzido levemente para mobile */
+            z-index: 11;
+            mix-blend-mode: screen;
+            image-rendering: pixelated;
+            animation: walk-across 8s linear infinite;
+        }
+
+        /* --- INTERFACE --- */
+        section { position: relative; z-index: 20; width: 100%; }
+
+        .ut-box {
+            border: 3px solid white;
+            padding: 15px;
+            background: black;
+            width: 90%;
+            max-width: 400px;
+            min-height: 140px;
+            margin: 0 auto;
+        }
+
+        .ut-button {
+            border: 2px solid #ff9d00;
+            color: #ff9d00;
+            padding: 10px 20px;
+            background: black;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-size: 12px;
+            margin-top: 15px;
+        }
+
+        .bg-photo {
+            position: absolute;
+            width: 150px; /* Fotos menores no celular */
+            border: 2px solid white;
+            opacity: 0;
+            transition: opacity 1.5s ease-in-out;
+            z-index: 5;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="battle-bg"></div>
+
+    <section id="tela0" class="h-screen flex flex-col items-center justify-center">
+        <p class="mb-6 text-[8px] text-gray-500">* (Você sente determinação...)</p>
+        <button onclick="iniciarTudo()" class="ut-button animate-bounce">[ ENTRAR ]</button>
+    </section>
+
+    <section id="tela1" class="hidden h-screen flex flex-col items-center justify-center px-4">
+        <div class="ut-box text-center flex flex-col items-center justify-center">
+            <p id="texto1" class="leading-relaxed text-[11px]"></p>
+            <button id="btn-next-1" onclick="proximaTela('tela2')" class="hidden ut-button">Saber Mais</button>
+        </div>
+    </section>
+
+    <section id="tela2" class="hidden h-screen w-full relative flex flex-col items-center justify-center">
+        <img id="sans" src="pixel-walking.gif" class="hidden sans-sprite">
+        <div class="ut-box text-center flex flex-col items-center justify-center">
+            <p id="texto2" class="text-[10px] md:text-sm"></p>
+            <button id="btn-next-2" onclick="proximaTela('tela3')" class="hidden ut-button">Avançar</button>
+        </div>
+    </section>
+
+    <section id="tela3" class="hidden h-screen flex flex-col items-center justify-center text-center px-6">
+        <h1 class="text-xl text-red-600 mb-6 animate-pulse">DETERMINAÇÃO.</h1>
+        <div class="ut-box">
+            <p id="texto3" class="text-[11px]"></p>
+        </div>
+    </section>
+
+    <audio id="musica" loop><source src="Undertale.mp3" type="audio/mpeg"></audio>
+    <audio id="snd-talk"><source src="https://www.myinstants.com/media/sounds/snd_txt2.mp3" type="audio/mpeg"></audio>
+
+    <script>
+        const linksDasFotos = ['https://imgur.com/M4BbvcU.jpg', 'https://imgur.com/0EO2U0l.jpg', 'https://imgur.com/P8iW0oS', 'https://imgur.com/YRJAQEZ', 'https://imgur.com/OfP7jz7', 'https://imgur.com/iCCuhxt'];
+        const coresAlmas = ['#00ffff', '#ff8000', '#0000ff', '#8000ff', '#00ff00', '#ffff00', '#ff0000'];
+        let indiceAlma = 0;
+
+        function createParticle() {
+            const container = document.getElementById('battle-bg');
+            const p = document.createElement('div');
+            p.className = 'asgore-particle';
+            p.style.left = Math.random() * 100 + 'vw';
+            p.style.animationDuration = Math.random() * 3 + 3 + 's';
+            container.appendChild(p);
+            setTimeout(() => p.remove(), 6000);
+        }
+
+        function createWave() {
+            const container = document.getElementById('battle-bg');
+            const w = document.createElement('div');
+            w.className = 'purple-wave';
+            w.style.top = Math.random() * 70 + 'vh';
+            w.style.animationDuration = (Math.random() * 2 + 3) + 's, ' + (Math.random() * 4 + 4) + 's';
+            container.appendChild(w);
+            setTimeout(() => w.remove(), 8000);
+        }
+
+        setInterval(createParticle, 400);
+        setInterval(createWave, 3000);
+
+        function typeWriter(elementoId, texto, btnId, i = 0) {
+            const elemento = document.getElementById(elementoId);
+            const somFala = document.getElementById('snd-talk');
+            if (i < texto.length) {
+                elemento.innerHTML += texto.charAt(i);
+                if (texto.charAt(i) !== " ") {
+                    somFala.currentTime = 0;
+                    somFala.play().catch(() => {}); 
+                }
+                setTimeout(() => typeWriter(elementoId, texto, btnId, i + 1), 60);
+            } else if (btnId) {
+                document.getElementById(btnId).classList.remove('hidden');
+            }
+        }
+
+        function iniciarTudo() {
+            document.getElementById('tela0').classList.add('hidden');
+            document.getElementById('tela1').classList.remove('hidden');
+            document.getElementById('musica').play();
+            typeWriter('texto1', "* Você encontrou um cartão misterioso carregado de memórias.", 'btn-next-1');
+        }
+
+        function adicionarAlma() {
+            if (indiceAlma < coresAlmas.length) {
+                const container = document.getElementById('tela2');
+                const alma = document.createElement('div');
+                alma.className = 'walking-soul';
+                alma.style.backgroundColor = coresAlmas[indiceAlma];
+                alma.style.color = coresAlmas[indiceAlma];
+                alma.style.animationDelay = `${(indiceAlma + 1) * 0.3}s, ${Math.random() * 2}s`;
+                container.appendChild(alma);
+                indiceAlma++;
+            }
+        }
+
+        function criarFotoNoFundo() {
+            const container = document.getElementById('tela2');
+            if (container.classList.contains('hidden')) return;
+            const img = document.createElement('img');
+            img.src = linksDasFotos[Math.floor(Math.random() * linksDasFotos.length)];
+            img.className = 'bg-photo';
+            img.style.left = Math.random() * (window.innerWidth - 150) + 'px';
+            img.style.top = Math.random() * (window.innerHeight - 250) + 'px';
+            img.style.transform = `rotate(${Math.floor(Math.random() * 15) - 7}deg)`;
+            container.appendChild(img);
+            setTimeout(() => img.style.opacity = '0.4', 100);
+            setTimeout(() => { img.style.opacity = '0'; setTimeout(() => img.remove(), 1500); }, 3500);
+        }
+
+        function proximaTela(id) {
+            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+            if (id === 'tela2') {
+                document.getElementById('sans').classList.remove('hidden');
+                typeWriter('texto2', "* Ver estas memórias te enche de determinação.", 'btn-next-2');
+                setInterval(criarFotoNoFundo, 3000);
+                setInterval(adicionarAlma, 8000); 
+            } else if (id === 'tela3') {
+                typeWriter('texto3', "* Eu te amo. Mais do que qualquer HP ou LV.");
+            }
+        }
+    </script>
+</body>
+</html>
